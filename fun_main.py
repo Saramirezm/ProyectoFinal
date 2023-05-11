@@ -5,7 +5,6 @@ from keys2 import *
 import sys
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 from unidecode import unidecode
-from datetime import datetime
 import pytz
 import re
 
