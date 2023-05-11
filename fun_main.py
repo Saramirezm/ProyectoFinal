@@ -85,14 +85,32 @@ def classify_sentiment(text):
         return 2  # Positivo
     else:
         return 1  # Neutro
+    
+def conver_date(fecha_str):
+    # Convertir la fecha y hora original a un objeto datetime de Python
+    fecha_utc = datetime.strptime(fecha_str, '%Y-%m-%d %H:%M:%S%z')
 
+    # Eliminar la información sobre la zona horaria del objeto datetime original
+    fecha_naive = fecha_utc.replace(tzinfo=None)
 
-def main():
-    query = '"Gobierno" -filter:retweets'
+    # Obtener los objetos timezone para las zonas horarias original y de destino
+    tz_original = pytz.timezone('UTC')
+    tz_nueva = pytz.timezone('America/Bogota')
+
+    # Convertir la fecha y hora del objeto datetime original a la nueva zona horaria
+    fecha_nueva = tz_original.localize(fecha_naive).astimezone(tz_nueva)
+
+    # Dar formato a la fecha y hora en la nueva zona horaria
+    fecha_nueva_str = fecha_nueva.strftime('%Y-%m-%d %H:%M:%S')
+
+    return fecha_nueva_str
+
+def CrearDatset(busqueda):
+    query = str(busqueda) +'-filter:retweets'
     dataframe = get_dataframe(query)
     dataframe['sentimiento'] = dataframe['text'].apply(lambda x: classify_sentiment(x))
     saveData(dataframe)
+    dataframe['fecha'] = dataframe['date'].apply(lambda x: conver_date(x))
+    dataframe.drop(colums='date')
 
-
-if __name__ == "__main__":
-    main()
+CrearDatset("Javeriana")
