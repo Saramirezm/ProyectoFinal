@@ -4,6 +4,11 @@ from nltk.corpus import stopwords
 from keys2 import *
 import sys
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
+from unidecode import unidecode
+from datetime import datetime
+import pytz
+import re
+
 
 def get_twitter_auth():
     """
@@ -13,7 +18,7 @@ def get_twitter_auth():
     try:
         consumerKey = consumer_key
         consumerSecret = consumer_secret
-        accessToken= access_token
+        accessToken = access_token
         accessTokenSecret = access_token_secret
 
     except KeyError:
@@ -25,6 +30,7 @@ def get_twitter_auth():
 
     return auth
 
+
 def get_twitter_client():
     """
     @return:
@@ -34,7 +40,8 @@ def get_twitter_client():
     client = tweepy.API(auth, wait_on_rate_limit=True)
     return client
 
-def get_dataframe(query):
+
+def get_dataframe(query, count=100, pages=100):
     """
     @params:
         - query: Las palabras claves de busqueda
@@ -47,10 +54,10 @@ def get_dataframe(query):
 
     for page in tweepy.Cursor(client.search_tweets,
                               q=query,
-                              tweet_mode = "extended",
+                              tweet_mode="extended",
                               lang='es',
-                              #result_type= 'popular',
-                              count=100).pages(100):
+                              # result_type= 'popular',
+                              count=count).pages(pages):
         for tweet in page:
             parsed_tweet = {}
             parsed_tweet['date'] = tweet.created_at
@@ -66,33 +73,80 @@ def get_dataframe(query):
     df = pd.DataFrame(all_tweets)
 
     # Eliminamos duplicados
-    df = df.drop_duplicates( "text" , keep='first')
+    df = df.drop_duplicates("text", keep='first')
 
     return df
 
-def saveData(dataframe):
-    """
-    :param dataframe:
-    :return: Un archivo csv
-    """
-    return dataframe.to_csv('data.csv')
 
 # Definimos una función para clasificar el sentimiento
 def classify_sentiment(text):
+    nuevo_texto = text.lower()
+    nuevo_texto = unidecode(nuevo_texto)
     sia = SentimentIntensityAnalyzer()
-    if sia.polarity_scores(text)['compound'] < -0.1:
+    if sia.polarity_scores(nuevo_texto)['compound'] < -0.1:
         return 0  # Negativo
-    elif sia.polarity_scores(text)['compound'] > 0.1:
+    elif sia.polarity_scores(nuevo_texto)['compound'] > 0.1:
         return 2  # Positivo
     else:
         return 1  # Neutro
-    
+
+
+def limpiar_tokenizar(texto):
+    """
+    Esta función limpia y tokeniza el texto en palabras individuales.
+    El orden en el que se va limpiando el texto no es arbitrario.
+    El listado de signos de puntuación se ha obtenido de: print(string.punctuation)
+    y re.escape(string.punctuation)
+    """
+    # Se convierte el texto a minúsculas
+    nuevo_texto = texto.lower()
+    # Eliminación de articulos y  (palabras que empiezan por "http")
+    nuevo_texto = re.sub('http\S+', ' ', nuevo_texto)
+    # Eliminación de páginas web (palabras que empiezan por "http")
+    nuevo_texto = re.sub('http\S+', ' ', nuevo_texto)
+    # Quitar las tildes, etc.
+    nuevo_texto = unidecode(nuevo_texto)
+    # Eliminación de signos de puntuación
+    regex = '[\\!\\"\\#\\$\\%\\&\\\'\\(\\)\\*\\+\\,\\-\\.\\/\\:\\;\\<\\=\\>\\?\\@\\[\\\\\\]\\^_\\`\\{\\|\\}\\~\n]'
+    nuevo_texto = re.sub(regex, ' ', nuevo_texto)
+    # Tokenización por palabras individuales
+    nuevo_texto = nuevo_texto.split(sep=' ')
+    # Eliminación de tokens con una longitud < 3
+    nuevo_texto = [token for token in nuevo_texto if len(token) > 3]
+    # Eliminación de stopwords en español
+    stop_words = set(stopwords.words('spanish'))
+    nuevo_texto = [word for word in nuevo_texto if not word in stop_words]
+    return nuevo_texto
+
+
+def buscar_hashtag(texto):
+    # Se convierte el texto a minúsculas
+    nuevo_texto = texto.lower()
+    # Quitar las tildes, etc.
+    nuevo_texto = unidecode(nuevo_texto)
+    # Solo hashtags
+    hashtags = re.findall(r'(?<=#)\w+', nuevo_texto)
+    hashtags = ['#' + word for word in hashtags]
+    return hashtags
+
+
+def buscar_mencion(texto):
+    # Se convierte el texto a minúsculas
+    nuevo_texto = texto.lower()
+    # Quitar las tildes, etc.
+    nuevo_texto = unidecode(nuevo_texto)
+    # Solo menciones
+    menciones = re.findall(r'(?<=@)\w+', nuevo_texto)
+    menciones = ['@' + word for word in menciones]
+    return menciones
+
+
 def conver_date(fecha_str):
     # Convertir la fecha y hora original a un objeto datetime de Python
-    fecha_utc = datetime.strptime(fecha_str, '%Y-%m-%d %H:%M:%S%z')
+    # fecha_utc = datetime.strptime(fecha_str, '%Y-%m-%d %H:%M:%S%z')
 
     # Eliminar la información sobre la zona horaria del objeto datetime original
-    fecha_naive = fecha_utc.replace(tzinfo=None)
+    fecha_naive = fecha_str.replace(tzinfo=None)
 
     # Obtener los objetos timezone para las zonas horarias original y de destino
     tz_original = pytz.timezone('UTC')
@@ -106,12 +160,27 @@ def conver_date(fecha_str):
 
     return fecha_nueva_str
 
-def CrearDatset(busqueda):
-    query = str(busqueda) +'-filter:retweets'
-    dataframe = get_dataframe(query)
-    dataframe['sentimiento'] = dataframe['text'].apply(lambda x: classify_sentiment(x))
-    saveData(dataframe)
-    dataframe['fecha'] = dataframe['date'].apply(lambda x: conver_date(x))
-    dataframe.drop(colums='date')
 
-CrearDatset("Javeriana")
+def saveData(dataframe):
+    """
+    :param dataframe:
+    :return: Un archivo csv
+    """
+    return dataframe.to_csv('data.csv')
+
+
+def CrearDatset(busqueda):
+    query = str(busqueda) + '-filter:retweets'
+    dataframe = get_dataframe(query, count=100, pages=300)
+    dataframe['sentimiento'] = dataframe['text'].apply(lambda x: classify_sentiment(x))
+    dataframe['fecha'] = dataframe['date'].apply(lambda x: conver_date(x))
+    # Limpieza de texto
+    dataframe['text_clean'] = dataframe['text'].apply(lambda x: limpiar_tokenizar(x))
+    dataframe['hashtag'] = dataframe['text'].apply(lambda x: buscar_hashtag(x))
+    dataframe['menciones'] = dataframe['text'].apply(lambda x: buscar_mencion(x))
+    dataframe = dataframe[
+        ['fecha', 'text', 'text_clean', 'hashtag', 'menciones', 'number_of_likes', 'number_of_retweets', 'sentimiento']]
+    saveData(dataframe)
+
+
+CrearDatset("OpenAI")
