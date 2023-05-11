@@ -1,5 +1,6 @@
 import pandas as pd
 import tweepy
+from nltk.corpus import stopwords
 from keys2 import *
 import sys
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
