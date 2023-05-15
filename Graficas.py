@@ -10,11 +10,6 @@ df['text_clean'] = df['text_clean'].apply(lambda x: ast.literal_eval(x))
 df['hashtag'] = df['hashtag'].apply(lambda x: ast.literal_eval(x))
 df['menciones'] = df['menciones'].apply(lambda x: ast.literal_eval(x))
 
-titulo=st.title("Twitter")
-st.markdown(''' 
-           *Desarrolladores: Aura Maria Cuasquer, Manuela Gomez, Andrea Bolivar
-
-          ''')
 
 def plot_tokens():
     # lista de tokens
