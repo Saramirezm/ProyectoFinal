@@ -3,16 +3,21 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 import ast
-
+import streamlit as st
 df = pd.read_csv('data.csv', encoding='utf-8')
 
 df['text_clean'] = df['text_clean'].apply(lambda x: ast.literal_eval(x))
 df['hashtag'] = df['hashtag'].apply(lambda x: ast.literal_eval(x))
 df['menciones'] = df['menciones'].apply(lambda x: ast.literal_eval(x))
 
+titulo=st.title("Twitter")
+st.markdown(''' 
+           *Desarrolladores: Aura Maria Cuasquer, Manuela Gomez, Andrea Bolivar
+
+          ''')
+
 def plot_tokens():
     # lista de tokens
-
     token_list = np.concatenate(df['text_clean'].values)
     # frecuencia
     frecuencias_token = Counter(token_list)
@@ -92,8 +97,8 @@ def plot_todas():
     plot_sentimientos()
     plot_tokens()
     plot_hashtag()
-    plot_fechas()
     plot_menciones()
+    plot_fechas()
 
-
-plot_todas()
+if __name__ == "__main__":
+    plot_todas()
