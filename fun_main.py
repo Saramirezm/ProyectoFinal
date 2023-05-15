@@ -168,7 +168,7 @@ def saveData(dataframe):
     return dataframe.to_csv('data.csv')
 
 
-def CrearDatset(busqueda, count=10, pages=100):
+def CrearDatset(busqueda, count=100, pages=10):
     query = str(busqueda) + '-filter:retweets'
     dataframe = get_dataframe(query, count=count, pages=pages)
     dataframe['sentimiento'] = dataframe['text'].apply(lambda x: classify_sentiment(x))
