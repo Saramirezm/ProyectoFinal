@@ -168,9 +168,9 @@ def saveData(dataframe):
     return dataframe.to_csv('data.csv')
 
 
-def CrearDatset(busqueda):
+def CrearDatset(busqueda, count=10, pages=100):
     query = str(busqueda) + '-filter:retweets'
-    dataframe = get_dataframe(query, count=100, pages=300)
+    dataframe = get_dataframe(query, count=count, pages=pages)
     dataframe['sentimiento'] = dataframe['text'].apply(lambda x: classify_sentiment(x))
     dataframe['fecha'] = dataframe['date'].apply(lambda x: conver_date(x))
     # Limpieza de texto
@@ -182,4 +182,5 @@ def CrearDatset(busqueda):
     saveData(dataframe)
 
 
-CrearDatset("OpenAI")
+if __name__ == '__main__':
+    CrearDatset("OpenAI")
