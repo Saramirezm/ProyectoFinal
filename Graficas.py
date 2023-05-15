@@ -10,7 +10,6 @@ df['text_clean'] = df['text_clean'].apply(lambda x: ast.literal_eval(x))
 df['hashtag'] = df['hashtag'].apply(lambda x: ast.literal_eval(x))
 df['menciones'] = df['menciones'].apply(lambda x: ast.literal_eval(x))
 
-
 def plot_tokens():
     # lista de tokens
     token_list = np.concatenate(df['text_clean'].values)
